@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,16 +7,44 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            line-height: 1.6;
+            line-height: 1.8;
             margin: 20px;
+            direction: rtl;
+            text-align: right;
+            background-color: #f9f9f9;
+            color: #333;
         }
-        section {
+        header {
+            text-align: center;
             margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
         }
-        h1, h2 {
+        form {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        label {
+            margin-left: 10px;
+        }
+        input[type="date"] {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
             color: #333;
         }
     </style>
@@ -28,7 +56,9 @@
     </script>
 </head>
 <body>
-    <h1>تواقيت شروق وغروب الكواكب (مسقط، سلطنة عمان)</h1>
+    <header>
+        <h1>تواقيت شروق وغروب الكواكب (مسقط، سلطنة عمان)</h1>
+    </header>
     <form id="dateForm" method="GET">
         <label for="date">اختر التاريخ:</label>
         <input type="date" id="date" name="date" value="{{ selected_date }}" onchange="submitOnDateChange()" required>
@@ -36,16 +66,24 @@
 
     {% if results %}
     <h2>النتائج لـ {{ selected_date }}:</h2>
-    {% for result in results %}
-    <section>
-        <h3>{{ result.planet }}</h3>
-        <ul>
-            {% for event in result.events %}
-            <li>{{ event.event }}: {{ event.time_local }}</li>
+    <table>
+        <thead>
+            <tr>
+                <th>الكوكب</th>
+                <th>وقت الشروق</th>
+                <th>وقت الغروب</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in results %}
+            <tr>
+                <td>{{ result.planet }}</td>
+                <td>{% for event in result.events %}{% if event.event == 'شروق' %}{{ event.time_local}}{% endif %}{% endfor %}</td>
+                <td>{% for event in result.events %}{% if event.event == 'غروب' %}{{ event.time_local}}{% endif %}{% endfor %}</td>
+            </tr>
             {% endfor %}
-        </ul>
-    </section>
-    {% endfor %}
+        </tbody>
+    </table>
     {% endif %}
 </body>
 </html>
