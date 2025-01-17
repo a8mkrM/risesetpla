@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تواقيت شروق وغروب الكواكب</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+    </style>
+    <script>
+        // إرسال النموذج تلقائيًا عند تغيير التاريخ
+        function submitOnDateChange() {
+            document.getElementById('dateForm').submit();
+        }
+    </script>
+</head>
+<body>
+    <h1>تواقيت شروق وغروب الكواكب (مسقط، سلطنة عمان)</h1>
+    <form id="dateForm" method="GET">
+        <label for="date">اختر التاريخ:</label>
+        <input type="date" id="date" name="date" value="{{ selected_date }}" onchange="submitOnDateChange()" required>
+    </form>
+
+    {% if results %}
+    <h2>النتائج لـ {{ selected_date }}:</h2>
+    {% for result in results %}
+    <section>
+        <h3>{{ result.planet }}</h3>
+        <ul>
+            {% for event in result.events %}
+            <li>{{ event.event }}: {{ event.time_local }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endfor %}
+    {% endif %}
+</body>
+</html>
