@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تواقيت شروق وغروب الكواكب</title>
+    <title>تواقيت الكواكب ومواقعها</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Arial", sans-serif;
             line-height: 1.8;
             margin: 20px;
             direction: rtl;
@@ -22,11 +22,9 @@
             display: flex;
             justify-content: center;
             margin-bottom: 30px;
+            gap: 10px;
         }
-        label {
-            margin-left: 10px;
-        }
-        input[type="date"] {
+        input {
             padding: 5px;
             border: 1px solid #ccc;
             border-radius: 5px;
@@ -47,43 +45,93 @@
             background-color: #f4f4f4;
             color: #333;
         }
+        img {
+            display: block;
+            margin: 20px auto;
+            max-width: 80%;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+        }
     </style>
     <script>
-        // إرسال النموذج تلقائيًا عند تغيير التاريخ
-        function submitOnDateChange() {
-            document.getElementById('dateForm').submit();
+        function autoSubmit() {
+            document.getElementById('datetimeForm').submit();
         }
     </script>
 </head>
 <body>
     <header>
-        <h1>تواقيت شروق وغروب الكواكب (مسقط، سلطنة عمان)</h1>
+        <h1>تواقيت ومواقع الكواكب (سلطنة عمان، {{ selected_location }})</h1>
     </header>
-    <form id="dateForm" method="GET">
+    
+    <form id="datetimeForm" method="GET">
+        <label for="location">اختر الموقع:</label>
+        <select name="location" id="location" onchange="autoSubmit()">
+            <option value="مسقط" {% if selected_location == 'مسقط' %}selected{% endif %}>مسقط</option>
+            <option value="صحار" {% if selected_location == 'صحار' %}selected{% endif %}>صحار</option>
+            <option value="الرستاق" {% if selected_location == 'الرستاق' %}selected{% endif %}>الرستاق</option>
+            <option value="خصب" {% if selected_location == 'خصب' %}selected{% endif %}>خصب</option>
+            <option value="البريمي" {% if selected_location == 'البريمي' %}selected{% endif %}>البريمي</option>
+            <option value="نزوى" {% if selected_location == 'نزوى' %}selected{% endif %}>نزوى</option>
+            <option value="ابراء" {% if selected_location == 'ابراء' %}selected{% endif %}>ابراء</option>
+            <option value="صور" {% if selected_location == 'صور' %}selected{% endif %}>صور</option>
+            <option value="هيماء" {% if selected_location == 'هيماء' %}selected{% endif %}>هيماء</option>
+            <option value="صلالة" {% if selected_location == 'صلالة' %}selected{% endif %}>صلالة</option>
+        </select>
+        
         <label for="date">اختر التاريخ:</label>
-        <input type="date" id="date" name="date" value="{{ selected_date }}" onchange="submitOnDateChange()" required>
+        <input type="date" id="date" name="date" value="{{ selected_date }}" onchange="autoSubmit()" required>
+        <label for="time">اختر الوقت:</label>
+        <input type="time" id="time" name="time" value="{{ selected_time }}" onchange="autoSubmit()" required>
     </form>
 
     {% if results %}
-    <h2>النتائج لـ {{ selected_date }}:</h2>
+    <h2>النتائج لـ {{ selected_date }} الساعة {{ selected_time }}:</h2>
     <table>
         <thead>
             <tr>
                 <th>الكوكب</th>
-                <th>وقت الشروق</th>
-                <th>وقت الغروب</th>
+                <th>الشروق</th>
+                <th>الغروب</th>
+                <th>الارتفاع الحالي (°)</th>
+                <th>السمت الحالي (°)</th>   
             </tr>
         </thead>
         <tbody>
             {% for result in results %}
             <tr>
                 <td>{{ result.planet }}</td>
-                <td>{% for event in result.events %}{% if event.event == 'شروق' %}{{ event.time_local}}{% endif %}{% endfor %}</td>
-                <td>{% for event in result.events %}{% if event.event == 'غروب' %}{{ event.time_local}}{% endif %}{% endfor %}</td>
+                <td>
+                    {% for event in result.events if 'شروق' in event %}
+                        {{ event.split(': ')[1] }}
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for event in result.events if 'غروب' in event %}
+                        {{ event.split(': ')[1] }}
+                    {% endfor %}
+                </td>
+                <td>{{ result.current_alt }}</td>
+                <td>{{ result.current_azm }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    {% endif %}
+    {% if visible_planets %}
+        <h2>الكواكب فوق الأفق:</h2>
+        <ul>
+            {% for planet in visible_planets %}
+                <li>{{ planet }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <h2>لا توجد كواكب فوق الأفق حاليًا.</h2>
+    {% endif %}
+
+    {% if image_path %}
+    <h2>مواقع الكواكب في القبة السماوية:</h2>
+    <img src="{{ image_path }}" alt="خريطة القبة السماوية">
     {% endif %}
 </body>
 </html>
