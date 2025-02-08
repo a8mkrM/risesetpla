@@ -10,9 +10,11 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <!-- الخطوط المطلوبة -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Aref+Ruqaa&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <!-- أنماط CSS مدمجة -->
   <style>
     body {
@@ -55,9 +57,8 @@
        text-align: center;
        width: 100%;
        padding: 10px;
-       background-color: #0c0842;
+       background-color: #1e1344;
        border-radius: 10px;
-       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
        color: aliceblue;
     }
     .day {
@@ -133,23 +134,25 @@
 </head>
 <body>
   <!-- نموذج اختيار الموقع والتاريخ -->
-  <div class="card top border border-warning-subtle rounded-0">
-    <h4 class="card-body">مواقع أجرام النظام الشمسي</h4>
+  <div class="card top border border-warning-subtle rounded-0 mt-1 p-2">
+    <h4 >مواقع أجرام النظام الشمسي</h4>
+    <small style="  font-family: Amiri, serif;    " class="mt-1"> ﴿كُلٌّ فِى فَلَكٍۢ يَسْبَحُونَ ﴾ <small>[الأنبياء : 33]</small> </small>
   </div>
   <div class="container-fluid p-1">
     <div class="card datelocation border-0 rounded-0 m-0">
-      <div class="card-body p-2">
-        <form id="datetimeForm" method="GET" class="row row-cols-auto g-1 align-items-center justify-content-center">
+      <div class="card-body p-0 pt-1">
+        <form id="datetimeForm" method="GET" class="row row-cols-12 g-1 align-items-center justify-content-center">
           {% if lat and lon and selected_location == 'موقعي الحالي' %}
             <input type="hidden" name="lat" value="{{ lat }}">
             <input type="hidden" name="lon" value="{{ lon }}">
           {% endif %}
-          <div class="col">
-            <div class="dropdown">
+          <div class="col-3">
+            <div class="dropdown" dir="rtl">
               <button type="button" class="btn btn-light btn-sm" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
                 تغيير الموقع
               </button>
-              <div class="dropdown-menu p-3">
+              <div class="dropdown-menu p-3"  style="direction: rtl; text-align: right;" >
+                <p >الموقع :{{ selected_location }}</p> 
                 <label for="locationSelect" class="form-label">اختر الموقع:</label>
                 <select class="form-select form-select-sm" name="location" id="locationSelect" onchange="document.getElementById('datetimeForm').submit()">
                   <option value="موقعي الحالي" {% if selected_location == 'موقعي الحالي' %}selected{% endif %}>موقعي الحالي</option>
@@ -167,12 +170,43 @@
               </div>
             </div>
           </div>
-          <div class="col">
-            <input type="date" id="date" name="date" class="form-control form-control-sm" value="{{ selected_date }}" required onchange="document.getElementById('datetimeForm').submit()">
-          </div>
-          <div class="col">
-            <input type="time" id="time" name="time" class="form-control form-control-sm" value="{{ selected_time }}" required onchange="document.getElementById('datetimeForm').submit()">
-          </div>
+            <!-- حقل التاريخ -->
+            <div class="col-3">
+              <input type="date" id="date" name="date" class="form-control form-control-sm" 
+                     value="{{ selected_date }}" required onchange="document.getElementById('datetimeForm').submit()">
+            </div>
+            <!-- حقل الوقت -->
+            <div class="col-3">
+              <input type="time" id="time" name="time" class="form-control form-control-sm" 
+                     value="{{ selected_time }}" required onchange="document.getElementById('datetimeForm').submit()">
+            </div>
+            <!-- زر إعادة ضبط الوقت والتاريخ إلى الوقت الحالي -->
+            <div class="col-1">
+              <button type="button" id="resetButton" class="btn btn-light btn-sm"><i class="bi bi-arrow-clockwise"></i></button>
+            </div>
+          
+          <script>
+            document.getElementById("resetButton").addEventListener("click", function() {
+              var now = new Date();
+              // تنسيق التاريخ بصيغة YYYY-MM-DD
+              var year = now.getFullYear();
+              var month = ("0" + (now.getMonth() + 1)).slice(-2);
+              var day = ("0" + now.getDate()).slice(-2);
+              var currentDate = year + "-" + month + "-" + day;
+              // تنسيق الوقت بصيغة HH:MM (24 ساعة)
+              var hours = ("0" + now.getHours()).slice(-2);
+              var minutes = ("0" + now.getMinutes()).slice(-2);
+              var currentTime = hours + ":" + minutes;
+              
+              // تعيين القيم إلى الحقول
+              document.getElementById("date").value = currentDate;
+              document.getElementById("time").value = currentTime;
+              
+              // إعادة إرسال النموذج
+              document.getElementById("datetimeForm").submit();
+            });
+          </script>
+          
         </form>
       </div>
     </div>
@@ -235,7 +269,7 @@
 
             <div class="container container-sunmoon  m-0 p-0" style="color: #c8c4c4; background-color: #1e1344;">
                   <div class="card-header  text-center m-0 p-0">
-                    <h2 class="card-title mb-0">التقويم الشهري</h2>
+                    <h2 class="card-title mb-1">التقويم الشهري</h2>
                   </div>
                   <div class="card-body">
                     <!-- صف لعناصر تحديد الشهر والسنة -->
