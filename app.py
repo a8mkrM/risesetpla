@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
-from skyfield.api import load, Topos, utc
+from skyfield.api import load, Topos
 from skyfield.almanac import find_discrete, risings_and_settings
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,47 +10,122 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 from matplotlib import rc
 
-# إعداد الخط لدعم اللغة العربية
-rc('font', family='DejaVu Sans')
-
-# إعداد Flask
 app = Flask(__name__)
+
+# مجلد لحفظ خريطة السماء المولَّدة
 IMAGE_FOLDER = "static/images"
 os.makedirs(IMAGE_FOLDER, exist_ok=True)
 
 def reshape_text(text):
-    reshaped_text = arabic_reshaper.reshape(text)
-    return get_display(reshaped_text)
+    """إعادة تشكيل النص العربي حتى يُعرض بشكل صحيح في matplotlib."""
+    reshaped = arabic_reshaper.reshape(text)
+    return get_display(reshaped)
 
-@app.route('/', methods=['GET', 'POST'])
+# قاموس المدن في عُمان (يمكنك تعديلها كما تريد)
+LOCATIONS = {
+    "مسقط": ("23.5880 N", "58.3829 E"),
+    "صحار": ("24.3429 N", "56.7290 E"),
+    "الرستاق": ("23.3909 N", "57.4244 E"),
+    "خصب": ("26.1766 N", "56.2406 E"),
+    "البريمي": ("24.2500 N", "55.7500 E"),
+    "نزوى": ("22.9333 N", "57.5333 E"),
+    "ابراء": ("22.6908 N", "58.5339 E"),
+    "صور": ("22.5667 N", "59.5289 E"),
+    "هيماء": ("19.9500 N", "56.3167 E"),
+    "صلالة": ("17.0190 N", "54.0897 E"),
+}
+
+# قاموس يربط اسم الجُرم السماوي بمسار الصورة
+PLANET_IMAGES = {
+    "الشمس":    "static/planetimg/sun.png",
+    "القمر":    "static/planetimg/moon.png",
+    "عطارد":   "static/planetimg/mercury.png",
+    "الزهرة":  "static/planetimg/venus.png",
+    "المريخ":  "static/planetimg/mars.png",
+    "المشتري": "static/planetimg/jupiter.png",
+    "زحل":     "static/planetimg/saturn.png",
+    "أورانوس": "static/planetimg/uranus.png",
+    "نبتون":   "static/planetimg/neptune.png"
+}
+
+# لضبط الخط العربي في الرسومات
+rc('font', family='DejaVu Sans')
+
+@app.route('/')
 def planet_times():
-    # إعداد توقيت مسقط (UTC+4)
+    """
+    منطق التطبيق:
+    - عند الزيارة الأولى (عدم إرسال lat, lon, location) يتم عرض الصفحة لتحديد الموقع عبر geolocation.
+    - عند قبول المستخدم أو اختيار مدينة محددة يتم حساب بيانات الشروق والغروب للأجرام السماوية،
+      وحساب ارتفاع وزاوية كل جرم، بالإضافة إلى حساب إضاءة وطور القمر بدقة عالية باستخدام Skyfield.
+    """
+    # قراءة بارامترات GET
+    lat = request.args.get('lat')
+    lon = request.args.get('lon')
+    selected_location = request.args.get('location')
+
+    # إذا لم يتم تحديد الموقع، نمرر قيم افتراضية لقاموس معلومات القمر
+    if not lat and not lon and not selected_location:
+        default_moon_info = {
+            "illumination": 0,
+            "phase_angle": 0,
+            "phase_angle_degrees": 0,
+            "phase_description": "غير معروف"
+        }
+        return render_template(
+            'index.html',
+            lat='',
+            lon='',
+            selected_location='',
+            selected_date='',
+            selected_time='',
+            results=[],
+            visible_planets=[],
+            image_path='',
+            planet_images=PLANET_IMAGES,
+            moon_info=default_moon_info
+        )
+
+    # تحديد الموقع
+    if lat and lon and selected_location == "موقعي الحالي":
+        # استخدام إحداثيات الجهاز
+        latitude = f"{lat} N"
+        longitude = f"{lon} E"
+    elif selected_location in LOCATIONS:
+        latitude, longitude = LOCATIONS[selected_location]
+    else:
+        latitude, longitude = LOCATIONS["مسقط"]
+        selected_location = "مسقط"
+
+    # إعداد المنطقة الزمنية
     oman_tz = pytz.timezone('Asia/Muscat')
     utc_tz = pytz.UTC
-    oman_time = datetime.now(oman_tz)
-
-    # الحصول على التاريخ والوقت من المستخدم
-    selected_date = request.args.get('date', oman_time.strftime('%Y-%m-%d'))
-    selected_time = request.args.get('time', oman_time.strftime('%H:%M'))
+    now_oman = datetime.now(oman_tz)
+    selected_date = request.args.get('date', now_oman.strftime('%Y-%m-%d'))
+    selected_time = request.args.get('time', now_oman.strftime('%H:%M'))
 
     try:
-        # تحويل الإدخال إلى datetime
-        selected_date_obj = datetime.strptime(selected_date, '%Y-%m-%d')
-        selected_time_obj = datetime.strptime(selected_time, '%H:%M').time()
-        local_datetime = datetime.combine(selected_date_obj, selected_time_obj)
+        date_obj = datetime.strptime(selected_date, '%Y-%m-%d')
+        time_obj = datetime.strptime(selected_time, '%H:%M').time()
+        local_datetime = datetime.combine(date_obj, time_obj)
         local_datetime = oman_tz.localize(local_datetime)
     except ValueError:
-        return "تنسيق التاريخ أو الوقت غير صحيح. الرجاء إدخال القيم بتنسيقات صحيحة.", 400
+        return "تنسيق التاريخ أو الوقت غير صحيح!", 400
 
     # تحويل الوقت إلى UTC
     utc_datetime = local_datetime.astimezone(utc_tz)
 
-    # تحميل البيانات الفلكية
-    eph = load('de421.bsp')
+    # تحميل بيانات Skyfield بدقة عالية: محاولة استخدام de430 إذا كانت متوفرة
+    try:
+        eph = load('de430.bsp')
+    except Exception:
+        eph = load('de421.bsp')
     ts = load.timescale()
 
-    # قائمة الكواكب
+    # تعريف الكواكب (الشمس، القمر، والكواكب الأخرى)
     planets = {
+        "الشمس": eph["sun"],
+        "القمر": eph["moon"],
         "عطارد": eph["mercury"],
         "الزهرة": eph["venus"],
         "المريخ": eph["mars"],
@@ -60,121 +135,147 @@ def planet_times():
         "نبتون": eph["neptune barycenter"]
     }
 
-    # تحديد الموقع الجغرافي
-    # قائمة المواقع والإحداثيات
-    locations = {
-        "مسقط": ("23.5880 N", "58.3829 E"),
-        "صحار": ("24.3429 N", "56.7290 E"),
-        "الرستاق": ("23.3909 N", "57.4244 E"),
-        "خصب": ("26.1766 N", "56.2406 E"),
-        "البريمي": ("24.2500 N", "55.7500 E"),
-        "نزوى": ("22.9333 N", "57.5333 E"),
-        "ابراء": ("22.6908 N", "58.5339 E"),
-        "صور": ("22.5667 N", "59.5289 E"),
-        "هيماء": ("19.9500 N", "56.3167 E"),
-        "صلالة": ("17.0190 N", "54.0897 E"),
-    }
-
-    # الحصول على الموقع من المستخدم
-    selected_location = request.args.get('location', 'مسقط')
-    latitude, longitude = locations.get(selected_location, locations["مسقط"])
+    # تهيئة الموقع باستخدام Topos
     location = Topos(latitude, longitude)
 
-    # نطاق الوقت (اليوم المدخل)
-    start_time = ts.utc(selected_date_obj.year, selected_date_obj.month, selected_date_obj.day)
-    end_time = ts.utc(selected_date_obj.year, selected_date_obj.month, selected_date_obj.day + 1)
+    from_date = ts.utc(date_obj.year, date_obj.month, date_obj.day)
+    to_date = ts.utc(date_obj.year, date_obj.month, date_obj.day + 1)
 
+    # حساب بيانات الشروق والغروب والارتفاع والسمت لكل جرم
     results = []
-
     for name, planet in planets.items():
-        # حساب الشروق والغروب
         times, events = find_discrete(
-            start_time, end_time, risings_and_settings(eph, planet, location)
+            from_date, to_date,
+            risings_and_settings(eph, planet, location)
         )
+
         planet_events = []
-        for t, event in zip(times, events):
-            event_type = "شروق" if event == 1 else "غروب"
-            local_time = t.utc_datetime().replace(tzinfo=utc_tz).astimezone(oman_tz)
-            hour_format = local_time.strftime('%I:%M')
-            period = "ص" if local_time.hour < 12 else "م"
+        for t_val, e_val in zip(times, events):
+            event_type = "شروق" if e_val == 1 else "غروب"
+            local_ev_time = t_val.utc_datetime().replace(tzinfo=utc_tz).astimezone(oman_tz)
+            hour_format = local_ev_time.strftime('%I:%M')
+            period = "ص" if local_ev_time.hour < 12 else "م"
             planet_events.append(f"{event_type}: {hour_format} {period}")
 
-        # حساب الموقع الحالي
+        # حساب الارتفاع والسمت في اللحظة المحددة
         observer = eph['earth'] + location
-        astrometric = observer.at(ts.from_datetime(utc_datetime)).observe(planet)
-        alt, azm, _ = astrometric.apparent().altaz()
+        astro = observer.at(ts.from_datetime(utc_datetime)).observe(planet)
+        alt, azm, _ = astro.apparent().altaz()
 
         results.append({
             "planet": name,
             "events": planet_events,
             "current_alt": round(alt.degrees, 2),
-            "current_azm": round(azm.degrees, 2)
+            "current_azm": round(azm.degrees, 2),
         })
 
-    # رسم القبة السماوية
+    # حساب إضاءة وطور القمر بدقة عالية باستخدام Skyfield
+    t_sky = ts.from_datetime(utc_datetime)
+    moon_obj = eph["moon"]
+    sun_obj  = eph["sun"]
+    earth_obj = eph["earth"]
+
+    moon_pos = moon_obj.at(t_sky).position.au
+    sun_pos = sun_obj.at(t_sky).position.au
+    earth_pos = earth_obj.at(t_sky).position.au
+
+    vector_moon_sun = sun_pos - moon_pos
+    vector_moon_earth = earth_pos - moon_pos
+
+    dot = np.dot(vector_moon_sun, vector_moon_earth)
+    norm_ms = np.linalg.norm(vector_moon_sun)
+    norm_me = np.linalg.norm(vector_moon_earth)
+    cos_phase = np.clip(dot / (norm_ms * norm_me), -1.0, 1.0)
+    phase_angle = np.arccos(cos_phase)  # بوحدة الراديان
+    illumination = (1 + np.cos(phase_angle)) / 2
+    phase_angle_degrees = np.degrees(phase_angle)
+
+    def classify_moon_phase(angle_deg):
+        if angle_deg < 10:
+            return "بدر"
+        elif angle_deg < 45:
+            return "هلال متزايد"
+        elif angle_deg < 55:
+            return "تربيع أول"
+        elif angle_deg < 85:
+            return "أحدب متزايد"
+        elif angle_deg < 95:
+            return "بدر"
+        elif angle_deg < 125:
+            return "أحدب متناقص"
+        elif angle_deg < 135:
+            return "تربيع أخير"
+        elif angle_deg < 170:
+            return "هلال متناقص"
+        else:
+            return "محاق"
+
+    phase_description = classify_moon_phase(phase_angle_degrees)
+    moon_info = {
+        "illumination": round(illumination, 4),  # دقة عالية (4 منازل عشرية)
+        "phase_angle": round(phase_angle, 4),
+        "phase_angle_degrees": round(phase_angle_degrees, 2),
+        "phase_description": phase_description
+    }
+
+    # رسم خريطة السماء
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.set_xlim(-1.1, 1.1)
     ax.set_ylim(-1.1, 1.1)
     circle = plt.Circle((0, 0), 1, color='lightblue', fill=True, alpha=0.5)
     ax.add_artist(circle)
 
-    # الاتجاهات الأساسية
     directions = ['شمال', 'شرق', 'جنوب', 'غرب']
     angles = [0, 90, 180, 270]
     for dir_label, angle in zip(directions, angles):
-        reshaped_label = reshape_text(dir_label)  # إعادة تشكيل النص
+        reshaped_label = reshape_text(dir_label)
         x = np.cos(np.radians(angle))
         y = np.sin(np.radians(angle))
-        ax.text(x * 1.2, y * 1.2, reshaped_label, ha='center', va='center', fontsize=12, fontweight='bold')
+        ax.text(x * 1.2, y * 1.2, reshaped_label,
+                ha='center', va='center', fontsize=12, fontweight='bold')
 
-    # إضافة زوايا السمت حول الدائرة
-    for angle in range(0, 360, 30):  # الزوايا من 0 إلى 360 بفاصل 30 درجة
-        x = np.cos(np.radians(angle)) * 1.05  # الموضع الأفقي للنص
-        y = np.sin(np.radians(angle)) * 1.05  # الموضع العمودي للنص
+    for angle in range(0, 360, 30):
+        x = np.cos(np.radians(angle)) * 1.05
+        y = np.sin(np.radians(angle)) * 1.05
         ax.text(x, y, f"{angle}°", ha='center', va='center', fontsize=8, color='black')
-    # قائمة الكواكب فوق الأفق
-    visible_planets = [result["planet"] for result in results if result["current_alt"] > 0]
-
-    # الكواكب الظاهرة
-    for result in results:
-        if result["current_alt"] > 0:
-            azm = result["current_azm"]
-            alt = result["current_alt"]
-            planet_name = reshape_text(result["planet"])  # إعادة تشكيل اسم الكوكب
+    
+    visible_planets = [r["planet"] for r in results if r["current_alt"] > 0]
+    for r in results:
+        if r["current_alt"] > 0:
+            azm = r["current_azm"]
+            alt = r["current_alt"]
+            planet_name = reshape_text(r["planet"])
             x = np.cos(np.radians(azm)) * (1 - alt / 90)
             y = np.sin(np.radians(azm)) * (1 - alt / 90)
-            
-            # رسم دائرة صغيرة للموقع
             ax.plot(x, y, 'o', color='darkblue', markersize=5)
-            
-            # إضافة اسم الكوكب بجانب الدائرة
-            ax.text(x , y+ 0.05, planet_name, ha='left', va='center', fontsize=8, color='black')
+            ax.text(x, y + 0.05, planet_name, ha='left', va='center', fontsize=8, color='black')
 
     ax.set_aspect('equal')
     ax.axis('off')
-  # تنظيف الصور القديمة قبل حفظ الصورة الجديدة
+
+    # تنظيف الصور القديمة
     for file in os.listdir(IMAGE_FOLDER):
         file_path = os.path.join(IMAGE_FOLDER, file)
         if os.path.isfile(file_path) and file.endswith('.png'):
             os.remove(file_path)
 
-    # حفظ الرسم
     image_path = os.path.join(IMAGE_FOLDER, "sky_map.png")
     plt.savefig(image_path, bbox_inches='tight', dpi=150)
     plt.close()
 
-   
-
-
+    # إعادة القالب مع تمرير جميع النتائج، بما في ذلك معلومات القمر بدقة عالية
     return render_template(
         'index.html',
-        results=results,
+        lat=lat,
+        lon=lon,
+        selected_location=selected_location,
         selected_date=selected_date,
         selected_time=selected_time,
-        selected_location=selected_location,  # تمرير الموقع المختار
+        results=results,
+        visible_planets=visible_planets,
         image_path=image_path,
-        visible_planets=visible_planets  # تمرير الكواكب المرئية
-
+        planet_images=PLANET_IMAGES,
+        moon_info=moon_info
     )
 
 if __name__ == '__main__':
