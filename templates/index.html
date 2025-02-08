@@ -1,137 +1,491 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تواقيت الكواكب ومواقعها</title>
-    <style>
-        body {
-            font-family: "Arial", sans-serif;
-            line-height: 1.8;
-            margin: 20px;
-            direction: rtl;
-            text-align: right;
-            background-color: #f9f9f9;
-            color: #333;
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>نظام شمسي وأوقات الشمس والقمر</title>
+  <!-- Bootstrap والموارد الأخرى -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- الخطوط المطلوبة -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Aref+Ruqaa&display=swap" rel="stylesheet">
+
+  <!-- أنماط CSS مدمجة -->
+  <style>
+    body {
+      background-color: #150d31;
+      color: aliceblue;
+      font-family: 'Cairo', sans-serif;
+    }
+    .top {
+      background-color: #150d31;
+      color: aliceblue;
+      text-align: center;
+    }
+    .datelocation {
+      background-color: #1c1142;
+      color: aliceblue;
+    }
+    .border-warning-subtle {
+      border-color: #f0ad4e !important;
+    }
+    .container-sunmoon {
+       margin-top: 20px;
+    }
+    .box, .box1 {
+       background-color: #fff;
+       color: #333;
+       padding: 20px;
+       border-radius: 10px;
+       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+       margin-bottom: 20px;
+    }
+    .box-header {
+       font-size: 1.5em;
+       color: #2e6da4;
+       margin-bottom: 10px;
+    }
+    .calendar {
+       display: grid;
+       grid-template-columns: repeat(7, 1fr);
+       gap: 3px;
+       text-align: center;
+       width: 100%;
+       padding: 10px;
+       background-color: #fff;
+       border-radius: 10px;
+       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .day {
+       background-color: #f9f9f9;
+       padding: 5px;
+       border-radius: 5px;
+       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+       font-size: 0.8em;
+       text-align: center;
+    }
+    .day-header {
+       font-weight: bold;
+       background-color: #e0e0e0;
+       padding: 5px;
+       border-radius: 5px;
+       font-size: 0.85em;
+    }
+    .moon-phase-container {
+       width: 25px;
+       height: 25px;
+       margin: auto;
+       position: relative;
+       padding-bottom: 10px;
+    }
+    .quran-text {
+       font-family: "Amiri", serif;
+       text-align: center;
+       color: #2d0c2c;
+    }
+    .vv { font-size: small; margin: 5px; }
+  </style>
+
+  <!-- تضمين مكتبة SunCalc من CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+
+  <!-- كود الجيولكيشن: عند تحميل الصفحة، إذا لم يكن الموقع محددًا نستخدم geolocation -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      var selectedLocation = "{{ selected_location|default('') }}";
+      if (!selectedLocation) {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function(pos) {
+              var lat = pos.coords.latitude;
+              var lon = pos.coords.longitude;
+              window.location.href = "/?lat=" + lat + "&lon=" + lon + "&location=" + encodeURIComponent("موقعي الحالي");
+            },
+            function(err) {
+              window.location.href = "/?location=مسقط";
+            }
+          );
+        } else {
+          window.location.href = "/?location=مسقط";
         }
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        form {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 30px;
-            gap: 10px;
-        }
-        input {
-            padding: 5px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: center;
-        }
-        th {
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        img {
-            display: block;
-            margin: 20px auto;
-            max-width: 80%;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-        }
-    </style>
-    <script>
-        function autoSubmit() {
-            document.getElementById('datetimeForm').submit();
-        }
-    </script>
+      }
+    });
+  </script>
+  
 </head>
 <body>
-    <header>
-        <h1>تواقيت ومواقع الكواكب (سلطنة عمان، {{ selected_location }})</h1>
-    </header>
-    
-    <form id="datetimeForm" method="GET">
-        <label for="location">اختر الموقع:</label>
-        <select name="location" id="location" onchange="autoSubmit()">
-            <option value="مسقط" {% if selected_location == 'مسقط' %}selected{% endif %}>مسقط</option>
-            <option value="صحار" {% if selected_location == 'صحار' %}selected{% endif %}>صحار</option>
-            <option value="الرستاق" {% if selected_location == 'الرستاق' %}selected{% endif %}>الرستاق</option>
-            <option value="خصب" {% if selected_location == 'خصب' %}selected{% endif %}>خصب</option>
-            <option value="البريمي" {% if selected_location == 'البريمي' %}selected{% endif %}>البريمي</option>
-            <option value="نزوى" {% if selected_location == 'نزوى' %}selected{% endif %}>نزوى</option>
-            <option value="ابراء" {% if selected_location == 'ابراء' %}selected{% endif %}>ابراء</option>
-            <option value="صور" {% if selected_location == 'صور' %}selected{% endif %}>صور</option>
-            <option value="هيماء" {% if selected_location == 'هيماء' %}selected{% endif %}>هيماء</option>
-            <option value="صلالة" {% if selected_location == 'صلالة' %}selected{% endif %}>صلالة</option>
-        </select>
-        
-        <label for="date">اختر التاريخ:</label>
-        <input type="date" id="date" name="date" value="{{ selected_date }}" onchange="autoSubmit()" required>
-        <label for="time">اختر الوقت:</label>
-        <input type="time" id="time" name="time" value="{{ selected_time }}" onchange="autoSubmit()" required>
-    </form>
+  <!-- نموذج اختيار الموقع والتاريخ -->
+  <div class="card top border border-warning-subtle rounded-0">
+    <h4 class="card-body">مواقع أجرام النظام الشمسي</h4>
+  </div>
+  <div class="container-fluid p-1">
+    <div class="card datelocation border-0 rounded-0 m-0">
+      <div class="card-body p-2">
+        <form id="datetimeForm" method="GET" class="row row-cols-auto g-1 align-items-center justify-content-center">
+          {% if lat and lon and selected_location == 'موقعي الحالي' %}
+            <input type="hidden" name="lat" value="{{ lat }}">
+            <input type="hidden" name="lon" value="{{ lon }}">
+          {% endif %}
+          <div class="col">
+            <div class="dropdown">
+              <button type="button" class="btn btn-light btn-sm" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                تغيير الموقع
+              </button>
+              <div class="dropdown-menu p-3">
+                <label for="locationSelect" class="form-label">اختر الموقع:</label>
+                <select class="form-select form-select-sm" name="location" id="locationSelect" onchange="document.getElementById('datetimeForm').submit()">
+                  <option value="موقعي الحالي" {% if selected_location == 'موقعي الحالي' %}selected{% endif %}>موقعي الحالي</option>
+                  <option value="مسقط" {% if selected_location == 'مسقط' %}selected{% endif %}>مسقط</option>
+                  <option value="صحار" {% if selected_location == 'صحار' %}selected{% endif %}>صحار</option>
+                  <option value="الرستاق" {% if selected_location == 'الرستاق' %}selected{% endif %}>الرستاق</option>
+                  <option value="خصب" {% if selected_location == 'خصب' %}selected{% endif %}>خصب</option>
+                  <option value="البريمي" {% if selected_location == 'البريمي' %}selected{% endif %}>البريمي</option>
+                  <option value="نزوى" {% if selected_location == 'نزوى' %}selected{% endif %}>نزوى</option>
+                  <option value="ابراء" {% if selected_location == 'ابراء' %}selected{% endif %}>ابراء</option>
+                  <option value="صور" {% if selected_location == 'صور' %}selected{% endif %}>صور</option>
+                  <option value="هيماء" {% if selected_location == 'هيماء' %}selected{% endif %}>هيماء</option>
+                  <option value="صلالة" {% if selected_location == 'صلالة' %}selected{% endif %}>صلالة</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <input type="date" id="date" name="date" class="form-control form-control-sm" value="{{ selected_date }}" required onchange="document.getElementById('datetimeForm').submit()">
+          </div>
+          <div class="col">
+            <input type="time" id="time" name="time" class="form-control form-control-sm" value="{{ selected_time }}" required onchange="document.getElementById('datetimeForm').submit()">
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-    {% if results %}
-    <h2>النتائج لـ {{ selected_date }} الساعة {{ selected_time }}:</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>الكوكب</th>
-                <th>الشروق</th>
-                <th>الغروب</th>
-                <th>الارتفاع الحالي (°)</th>
-                <th>السمت الحالي (°)</th>   
-            </tr>
-        </thead>
-        <tbody>
+  
+
+
+  <nav>
+    <div class="nav nav-tabs justify-content-center" id="nav-tab" role="tablist">
+      <button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true">الكواكب</button>
+      <button class="nav-link" id="nav-profile-tab" data-bs-toggle="tab" data-bs-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false">القمر</button>
+      <button class="nav-link" id="nav-contact-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false">القبة السماوية</button>
+    </div>
+  </nav>
+  
+  <div class="tab-content" id="nav-tabContent">
+    <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab" tabindex="0"><!-- قسم بيانات الكواكب -->
+        <div class="container my-4" style="color: aliceblue;">
+          <div class="row row-cols-2 g-1">
             {% for result in results %}
-            <tr>
-                <td>{{ result.planet }}</td>
-                <td>
+              <div class="col">
+                <div class="border border-warning-subtle rounded-1 p-1 h-100">
+                  <div class="d-flex align-items-center mb-2">
+                    {% if result.planet in planet_images %}
+                      <img src="{{ planet_images[result.planet] }}" alt="{{ result.planet }}" style="width: 24px; height: 24px;">
+                    {% endif %}
+                    <h5 class="ms-2 mb-0">{{ result.planet }}</h5>
+                  </div>
+                  <p class="mb-1">
+                    <i class="bi bi-arrow-bar-up"></i>
                     {% for event in result.events if 'شروق' in event %}
-                        {{ event.split(': ')[1] }}
+                      {{ event.split(': ')[1] }}
                     {% endfor %}
-                </td>
-                <td>
+                    <i class="bi bi-arrow-bar-down"></i>
                     {% for event in result.events if 'غروب' in event %}
-                        {{ event.split(': ')[1] }}
+                      {{ event.split(': ')[1] }}
                     {% endfor %}
-                </td>
-                <td>{{ result.current_alt }}</td>
-                <td>{{ result.current_azm }}</td>
-            </tr>
+                    <br>
+                    <strong>الارتفاع :</strong> {{ result.current_alt }}°
+                  </p>
+                </div>
+              </div>
             {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
-    {% if visible_planets %}
-        <h2>الكواكب فوق الأفق:</h2>
-        <ul>
-            {% for planet in visible_planets %}
-                <li>{{ planet }}</li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <h2>لا توجد كواكب فوق الأفق حاليًا.</h2>
-    {% endif %}
-
-    {% if image_path %}
-    <h2>مواقع الكواكب في القبة السماوية:</h2>
+          </div>
+        </div></div>
+    <div class="tab-pane fade" id="nav-profile" role="tabpanel" aria-labelledby="nav-profile-tab" tabindex="0">
+    <!-- قسم أوقات الشمس والقمر والتقويم الشهري -->
+    <div class="container container-sunmoon" style="color: #333;">
+      
+      
+        <div class="box" id="sunmoon-results">
+          <div id=""><div>
+            {% if moon_info.illumination is defined %}
+            <div>
+              <h3>معلومات القمر</h3>
+              <p>نسبة الإضاءة: {{ "%.2f"|format(moon_info.illumination*100) }}%</p>
+    <p>زاوية الطور: {{ "%.4f"|format(moon_info.phase_angle_degrees) }} درجة</p>
+    <p>تصنيف الطور: {{ moon_info.phase_description }}</p>
+    
+            </div>
+          {% else %}
+            <div>
+              <h3>معلومات القمر غير متوفرة حالياً</h3>
+            </div>
+          {% endif %}
+          </div>
+          </div>
+          <div id="results2"></div>
+          <div id="moon-phase-container" class="moon-phase-container" style="margin: 10px auto;"></div>
+        </div>
+        <div class="box box1">
+          <h2>التقويم الشهري</h2>
+          <div class="controls text-center">
+            <select id="month-select" onchange="updateCalendar()">
+            </select>
+            <select id="year-select" onchange="updateCalendar()">
+            </select>
+          </div>
+          <div class="calendar" id="calendar">
+          </div>
+        </div>
+    
+      </div>
+      </div>
+    <div class="tab-pane fade" id="nav-contact" role="tabpanel" aria-labelledby="nav-contact-tab" tabindex="0">
+    
+  {% if image_path %}
+  <div class="container my-4" style="color: aliceblue;">
+    <h2>خريطة السماء:</h2>
     <img src="{{ image_path }}" alt="خريطة القبة السماوية">
-    {% endif %}
+  </div>
+  {% endif %}
+      </div>
+  </div>
+
+
+
+  <!-- جافاسكريبت لحساب أوقات الشمس والقمر والتقويم -->
+  <script>
+    // دوال تنسيق التاريخ والوقت
+    function formatDateForArabic(date) {
+      const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+      const day = days[date.getDay()];
+      const month = date.toLocaleString('ar-EG', { month: 'long' });
+      const year = date.getFullYear();
+      return `${day}, ${date.getDate()} ${month} ${year}`;
+    }
+    function formatTimeForArabic(time) {
+      const options = { hour: '2-digit', minute: '2-digit', hour12: true };
+      let formattedTime = time.toLocaleTimeString('ar-EG', options);
+      return formattedTime.replace('AM', 'ص').replace('PM', 'م');
+    }
+
+    // دالة رسم طور القمر
+    var drawPlanetPhase = (function(){
+      "use strict";
+      function calcInner(outerDiameter, semiPhase){
+        var absPhase = Math.abs(semiPhase);
+        var n = ((1 - absPhase) * outerDiameter / 2) || 0.01;
+        var innerRadius = n/2 + (outerDiameter * outerDiameter) / (8 * n);
+        return {
+          d: innerRadius * 2,
+          o: semiPhase > 0 ? (outerDiameter/2 - n) : (-2 * innerRadius + outerDiameter/2 + n)
+        };
+      }
+      function setCss(el, props){
+        for (var p in props){
+          el.style[p] = props[p];
+        }
+      }
+      function drawDiscs(outer, inner, blurSize){
+        var blurredDiameter = inner.diameter - blurSize;
+        var blurredOffset = inner.offset + blurSize/2;
+        setCss(outer.box, {
+          'position': 'absolute',
+          'height': outer.diameter + 'px',
+          'width': outer.diameter + 'px',
+          'border': '1px solid black',
+          'backgroundColor': outer.colour,
+          'borderRadius': (outer.diameter/2) + 'px',
+          'overflow': 'hidden'
+        });
+        setCss(inner.box, {
+          'position': 'absolute',
+          'backgroundColor': inner.colour,
+          'borderRadius': (blurredDiameter/2) + 'px',
+          'height': blurredDiameter + 'px',
+          'width': blurredDiameter + 'px',
+          'left': blurredOffset + 'px',
+          'top': ((outer.diameter - blurredDiameter)/2) + 'px',
+          'boxShadow': '0px 0px ' + blurSize + 'px ' + blurSize + 'px ' + inner.colour,
+          'opacity': 1 - inner.earthshine
+        });
+      }
+      function makeDiv(container){
+        var div = document.createElement('div');
+        container.appendChild(div);
+        return div;
+      }
+      function setPhase(outerBox, phase, isWaxing, config){
+        var innerBox = makeDiv(outerBox);
+        var outerColour, innerColour;
+        if (phase < 0.5) {
+          outerColour = config.lightColour;
+          innerColour = config.shadowColour;
+          if (isWaxing) { phase *= -1; }
+        } else {
+          outerColour = config.shadowColour;
+          innerColour = config.lightColour;
+          phase = 1 - phase;
+          if (!isWaxing) { phase *= -1; }
+        }
+        var innerVals = calcInner(config.diameter, phase * 2);
+        drawDiscs({
+          box: outerBox,
+          diameter: config.diameter,
+          colour: outerColour
+        }, {
+          box: innerBox,
+          diameter: innerVals.d,
+          colour: innerColour,
+          offset: innerVals.o,
+          earthshine: config.earthshine
+        }, config.blur);
+      }
+      var defaultConfig = {
+        shadowColour: 'black',
+        lightColour: '#6f456e',
+        diameter: 80,
+        earthshine: 0.1,
+        blur: 3
+      };
+      function populateMissingConfigValues(config){
+        for(var p in defaultConfig) {
+          config[p] = (config[p] === undefined) ? defaultConfig[p] : config[p];
+        }
+        return config;
+      }
+      return function(containerEl, phase, isWaxing, config){
+        config = populateMissingConfigValues(config || {});
+        var el = makeDiv(containerEl);
+        setPhase(el, phase, isWaxing, config);
+      };
+    })();
+
+    function getMoonPhaseName(phase) {
+      if (phase === 0 || phase === 1) return "المحاق";
+      if (phase > 0 && phase < 0.20) return "الهلال المتزايد";
+      if (phase > 0.20 && phase < 0.25) return "التربيع الأول";
+      if (phase > 0.25 && phase < 0.45) return "الأحدب المتزايد";
+      if (phase > 0.45 && phase < 0.55) return "البدر";
+      if (phase > 0.55 && phase < 0.75) return "الأحدب المتناقص";
+      if (phase > 0.75 && phase < 0.80) return "التربيع الأخير";
+      if (phase > 0.80 && phase < 1) return "الهلال المتناقص";
+      return "غير معروف";
+    }
+
+    // حساب أوقات الشمس والقمر باستخدام SunCalc
+    function calculateSunAndMoonTimes(lat, lng, date) {
+      const sunTimes = SunCalc.getTimes(date, lat, lng);
+      const moonTimes = SunCalc.getMoonTimes(date, lat, lng);
+      const moonIllumination = SunCalc.getMoonIllumination(date);
+      const moonPhaseName = getMoonPhaseName(moonIllumination.phase);
+
+      var container = document.getElementById('moon-phase-container');
+      container.innerHTML = '';
+      drawPlanetPhase(container, moonIllumination.fraction, moonIllumination.phase < 0.5, {
+        diameter: 36,
+        shadowColour: 'black',
+        lightColour: '#6f456e',
+        blur: 2,
+        earthshine: 0.1
+      });
+    }
+
+    // التقويم الشهري
+    function populateCalendar(lat, lng, year, month) {
+      const calendar = document.getElementById('calendar');
+      calendar.innerHTML = '';
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const firstDayOfMonth = new Date(year, month, 1).getDay();
+      const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+      const headers = days.map(day => `<div class="day-header">${day}</div>`).join('');
+      calendar.innerHTML = headers;
+      for (let i = 0; i < firstDayOfMonth; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'day';
+        calendar.appendChild(emptyCell);
+      }
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const moonIllumination = SunCalc.getMoonIllumination(date);
+        const moonPhaseName = getMoonPhaseName(moonIllumination.phase);
+        const dayCell = document.createElement('div');
+        dayCell.className = 'day';
+        const dateText = document.createElement('div');
+        dateText.textContent = day;
+        dateText.className = 'ddmmon';
+        dayCell.appendChild(dateText);
+        const phaseContainer = document.createElement('div');
+        phaseContainer.className = 'moon-phase-container';
+        drawPlanetPhase(phaseContainer, moonIllumination.fraction, moonIllumination.phase < 0.5, {
+          diameter: 25,
+          shadowColour: 'black',
+          lightColour: '#6f456e',
+          blur: 2,
+          earthshine: 0.1
+        });
+        const phaseText = document.createElement('div');
+        phaseText.textContent = moonPhaseName;
+        dayCell.appendChild(phaseContainer);
+        dayCell.appendChild(phaseText);
+        calendar.appendChild(dayCell);
+      }
+    }
+    
+    function populateMonthAndYearSelectors() {
+      const monthSelect = document.getElementById('month-select');
+      const yearSelect = document.getElementById('year-select');
+      monthSelect.innerHTML = '';
+      yearSelect.innerHTML = '';
+      const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+      months.forEach((month, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = month;
+        monthSelect.appendChild(option);
+      });
+      const currentYear = new Date().getFullYear();
+      for (let year = currentYear - 10; year <= currentYear + 10; year++) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        yearSelect.appendChild(option);
+      }
+      // ضبط القيم الافتراضية بناءً على التاريخ الموجود في النموذج
+      const selectedDate = new Date("{{ selected_date }}T{{ selected_time }}:00");
+      monthSelect.value = selectedDate.getMonth();
+      yearSelect.value = selectedDate.getFullYear();
+    }
+    
+    function updateCalendar() {
+      const lat = parseFloat("{{ lat_numeric|default('23.5919') }}");
+      const lng = parseFloat("{{ lon_numeric|default('58.1670') }}");
+      const year = parseInt(document.getElementById('year-select').value, 10);
+      const month = parseInt(document.getElementById('month-select').value, 10);
+      populateCalendar(lat, lng, year, month);
+    }
+    
+    function initializeSunMoon() {
+      const lat = parseFloat("{{ lat_numeric|default('23.5919') }}");
+      const lng = parseFloat("{{ lon_numeric|default('58.1670') }}");
+      const dateStr = "{{ selected_date }}";
+      const timeStr = "{{ selected_time }}";
+      const date = new Date(dateStr + 'T' + timeStr + ':00');
+      calculateSunAndMoonTimes(lat, lng, date);
+      populateMonthAndYearSelectors();
+      populateCalendar(lat, lng, date.getFullYear(), date.getMonth());
+    }
+    
+    document.addEventListener('DOMContentLoaded', function(){
+      // إذا تم تحديد الموقع (selected_location غير فارغ) ننفذ الحسابات
+      var selectedLocation = "{{ selected_location|default('') }}";
+      if (selectedLocation) {
+        initializeSunMoon();
+      }
+    });
+  </script>
 </body>
 </html>
