@@ -218,13 +218,37 @@ def planet_times():
         "phase_description": phase_description
     }
 
+   
+
+
+    # تعريف ألوان الكواكب الخاصة
+    planet_colors = {
+        "الشمس":    "#FDB813",  # لون برتقالي-أصفر
+        "القمر":    "#CCCCCC",  # رمادي فاتح
+        "عطارد":   "#B1B1B1",  # رمادي
+        "الزهرة":  "#F7D358",  # أصفر فاتح
+        "المريخ":  "#FF4500",  # أحمر برتقالي
+        "المشتري": "#FFA500",  # برتقالي
+        "زحل":     "#D2B48C",  # تان
+        "أورانوس": "#7FFFD4",  # أكوامارين
+        "نبتون":   "#4169E1"   # أزرق ملكي
+    }
+
     # رسم خريطة السماء
     fig, ax = plt.subplots(figsize=(8, 8))
+
+    # تعيين خلفية الشكل والمحاور
+    fig.patch.set_facecolor('#0c0842')
+    ax.set_facecolor('#0c0842')
+
     ax.set_xlim(-1.1, 1.1)
     ax.set_ylim(-1.1, 1.1)
+
+    # رسم دائرة السماء
     circle = plt.Circle((0, 0), 1, color='lightblue', fill=True, alpha=0.5)
     ax.add_artist(circle)
 
+    # رسم الاتجاهات (شمال، شرق، جنوب، غرب) باللون الأبيض
     directions = ['شمال', 'شرق', 'جنوب', 'غرب']
     angles = [0, 90, 180, 270]
     for dir_label, angle in zip(directions, angles):
@@ -232,36 +256,44 @@ def planet_times():
         x = np.cos(np.radians(angle))
         y = np.sin(np.radians(angle))
         ax.text(x * 1.2, y * 1.2, reshaped_label,
-                ha='center', va='center', fontsize=12, fontweight='bold')
+                ha='center', va='center', fontsize=12, fontweight='bold', color='white')
 
+    # رسم تسميات الزوايا (0°، 30°، ... إلخ) باللون الأبيض
     for angle in range(0, 360, 30):
         x = np.cos(np.radians(angle)) * 1.05
         y = np.sin(np.radians(angle)) * 1.05
-        ax.text(x, y, f"{angle}°", ha='center', va='center', fontsize=8, color='black')
-    
-    visible_planets = [r["planet"] for r in results if r["current_alt"] > 0]
+        ax.text(x, y, f"{angle}°", ha='center', va='center', fontsize=8, color='white')
+
+    # رسم الكواكب التي تكون فوق الأفق
     for r in results:
         if r["current_alt"] > 0:
             azm = r["current_azm"]
             alt = r["current_alt"]
             planet_name = reshape_text(r["planet"])
+            # حساب الموقع
             x = np.cos(np.radians(azm)) * (1 - alt / 90)
             y = np.sin(np.radians(azm)) * (1 - alt / 90)
-            ax.plot(x, y, 'o', color='darkblue', markersize=5)
-            ax.text(x, y + 0.05, planet_name, ha='left', va='center', fontsize=8, color='black')
+            # الحصول على لون الكوكب من القاموس، وإذا لم يوجد يتم استخدام الأبيض كافتراضي
+            planet_color = planet_colors.get(r["planet"], "white")
+            ax.plot(x, y, 'o', color=planet_color, markersize=5)
+            ax.text(x, y + 0.05, planet_name, ha='left', va='center', fontsize=8, color='white')
 
     ax.set_aspect('equal')
     ax.axis('off')
 
-    # تنظيف الصور القديمة
+    # تنظيف الصور القديمة في مجلد IMAGE_FOLDER
     for file in os.listdir(IMAGE_FOLDER):
         file_path = os.path.join(IMAGE_FOLDER, file)
         if os.path.isfile(file_path) and file.endswith('.png'):
             os.remove(file_path)
 
+    # حفظ الصورة
     image_path = os.path.join(IMAGE_FOLDER, "sky_map.png")
     plt.savefig(image_path, bbox_inches='tight', dpi=150)
     plt.close()
+
+
+
 
     # إعادة القالب مع تمرير جميع النتائج، بما في ذلك معلومات القمر بدقة عالية
     return render_template(
@@ -272,7 +304,6 @@ def planet_times():
         selected_date=selected_date,
         selected_time=selected_time,
         results=results,
-        visible_planets=visible_planets,
         image_path=image_path,
         planet_images=PLANET_IMAGES,
         moon_info=moon_info
