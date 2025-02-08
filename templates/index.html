@@ -36,7 +36,7 @@
        margin-top: 20px;
     }
     .box, .box1 {
-       background-color: #fff;
+       background-color: #230c4b;
        color: #333;
        padding: 20px;
        border-radius: 10px;
@@ -45,7 +45,7 @@
     }
     .box-header {
        font-size: 1.5em;
-       color: #2e6da4;
+       color: #0d2f4c;
        margin-bottom: 10px;
     }
     .calendar {
@@ -55,12 +55,13 @@
        text-align: center;
        width: 100%;
        padding: 10px;
-       background-color: #fff;
+       background-color: #0c0842;
        border-radius: 10px;
        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+       color: aliceblue;
     }
     .day {
-       background-color: #f9f9f9;
+       background-color: #391f63;
        padding: 5px;
        border-radius: 5px;
        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -69,7 +70,7 @@
     }
     .day-header {
        font-weight: bold;
-       background-color: #e0e0e0;
+       background-color: #27054a;
        padding: 5px;
        border-radius: 5px;
        font-size: 0.85em;
@@ -87,6 +88,20 @@
        color: #2d0c2c;
     }
     .vv { font-size: small; margin: 5px; }
+
+
+
+  @media (max-width: 480px) {
+     .hh{
+        font-size: 0.9rem;
+     }
+  }
+  @media (max-width: 320px) {
+     .hh{
+        font-size: 0.8rem;
+     }
+  }
+    
   </style>
 
   <!-- تضمين مكتبة SunCalc من CDN -->
@@ -163,22 +178,131 @@
     </div>
   </div>
 
-  
+  <div class="container my-4" style="color: aliceblue;">
+    <div class="row row-cols-2 g-1 border border-warning-subtle">
+      
+      <!-- العمود الأول: رسم طور القمر -->
+      <div class="col">
+        <div class="rounded-1 p-1 h-100">
+          <div id="moon-phase-container" class="moon-phase-container" style="margin: auto"></div>
+        </div>
+      </div>
+      
+      <!-- العمود الثاني: معلومات القمر -->
+      <div class="col">
+        <div class="rounded-1 p-1 h-100">
+          
+          <!-- حلقة تعرض بيانات القمر من قائمة النتائج -->
+          {% for result in results if result.planet == 'القمر' %}
+            <p class="mb-1">
+              <i class="bi bi-arrow-bar-up"></i>
+              {% for event in result.events if 'شروق' in event %}
+                {{ event.split(': ')[1] }}
+              {% endfor %}
+              <i class="bi bi-arrow-bar-down"></i>
+              {% for event in result.events if 'غروب' in event %}
+                {{ event.split(': ')[1] }}
+              {% endfor %}
+              <br>
+              الارتفاع : {{ result.current_alt }}°
+            </p>
+          {% endfor %}
+          
+          <!-- فقرة يمكن استخدامها لإضافة معلومات أخرى عبر جافاسكريبت -->
+          <p id="results2" class="m-0 p-0"></p>
+          
+          <!-- عرض نسبة الإضاءة إذا كانت معلومة القمر متوفرة -->
+          {% if moon_info.illumination is defined %}
+              <p class="m-0 p-0"><i class="bi bi-lightbulb"></i>
+                {{ "%.2f"|format(moon_info.illumination * 100) }}%</p>
+          {% else %}
+            <div>
+              <h3>معلومات القمر غير متوفرة حالياً</h3>
+            </div>
+          {% endif %}
+          
+          <p class="d-inline-flex gap-1">
+            <a class="btn btn-outline-light btn-sm" data-bs-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false" aria-controls="collapseExample">
+التقويم القمري            </a>
+          </p>
 
 
-  <nav>
-    <div class="nav nav-tabs justify-content-center" id="nav-tab" role="tablist">
-      <button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true">الكواكب</button>
-      <button class="nav-link" id="nav-profile-tab" data-bs-toggle="tab" data-bs-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false">القمر</button>
-      <button class="nav-link" id="nav-contact-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false">القبة السماوية</button>
+
+        </div>
+      </div>
+      <div class="collapse col-12  m-0 p-0" id="collapseExample">
+        <div class="card card-body  m-0 p-0" style="color: #c8c4c4; background-color: #1e1344;">
+
+            <div class="container container-sunmoon  m-0 p-0" style="color: #c8c4c4; background-color: #1e1344;">
+                  <div class="card-header  text-center m-0 p-0">
+                    <h2 class="card-title mb-0">التقويم الشهري</h2>
+                  </div>
+                  <div class="card-body">
+                    <!-- صف لعناصر تحديد الشهر والسنة -->
+                    <div class="row">
+                      <div class="col-12">
+                        <div class="row" >
+                          <div class="col-6 col-md-4" >
+                            <select id="month-select" style="color: #c8c4c4; background-color: #1e1344;" class="form-select" onchange="updateCalendar()">
+                              <!-- سيتم ملء الأشهر ديناميكيًا -->
+                            </select>
+                          </div>
+                          <div class="col-6 col-md-4">
+                            <select id="year-select" style="color: #c8c4c4; background-color: #1e1344;" class="form-select" onchange="updateCalendar()">
+                              <!-- سيتم ملء السنوات ديناميكيًا -->
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- تقويم شهري مع خاصية التمرير الأفقي لتجنب خروج المحتوى -->
+<!-- العنصر في القالب -->
+<div class="calendar  m-0 p-0 pt-1" id="calendar" style="min-height: 300px; max-width: 100%; margin: auto;"></div>
+
+<!-- يمكنك تضمين الأنماط التالية في ملف CSS أو داخل <style> -->
+<style>
+  /* جعل التقويم يمتد بعرض 100% مع تحديد max-width معين (يمكنك تعديل القيمة) */
+  .calendar {
+      width: 100%;
+      max-width: 500px;  /* مثال: 400 بكسل، يمكنك ضبطها حسب التصميم */
+      margin: 0;
+
+
+  }
+  /* تنسيق خلايا التقويم (الأيام وعناوين الأيام) بحيث تكون أصغر */
+  .calendar .day,
+  .calendar .day-header {
+      font-size: 0.8rem;
+      padding: 4px;
+  }
+  /* تعديل إضافي للأجهزة الصغيرة */
+  @media (max-width: 480px) {
+      .calendar {
+          max-width: 450px;  /* تقليل العرض للأجهزة الصغيرة */
+      }
+      .calendar .day,
+      .calendar .day-header {
+          font-size: 0.5rem;
+          padding: 2px;
+      }
+  }
+</style>
+                      <!-- سيتم ملء التقويم ديناميكيًا -->
+                    </div>
+                </div>
+              </div>
+        </div>
+      </div>
     </div>
-  </nav>
+  </div>
   
-  <div class="tab-content" id="nav-tabContent">
-    <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab" tabindex="0"><!-- قسم بيانات الكواكب -->
+
+
+
+
         <div class="container my-4" style="color: aliceblue;">
           <div class="row row-cols-2 g-1">
-            {% for result in results %}
+            {% for result in results if result.planet != 'القمر' %}
               <div class="col">
                 <div class="border border-warning-subtle rounded-1 p-1 h-100">
                   <div class="d-flex align-items-center mb-2">
@@ -187,7 +311,7 @@
                     {% endif %}
                     <h5 class="ms-2 mb-0">{{ result.planet }}</h5>
                   </div>
-                  <p class="mb-1">
+                  <p class="mb-1 hh">
                     <i class="bi bi-arrow-bar-up"></i>
                     {% for event in result.events if 'شروق' in event %}
                       {{ event.split(': ')[1] }}
@@ -197,62 +321,34 @@
                       {{ event.split(': ')[1] }}
                     {% endfor %}
                     <br>
-                    <strong>الارتفاع :</strong> {{ result.current_alt }}°
+               الارتفاع : {{ result.current_alt }}°
                   </p>
                 </div>
               </div>
             {% endfor %}
           </div>
-        </div></div>
-    <div class="tab-pane fade" id="nav-profile" role="tabpanel" aria-labelledby="nav-profile-tab" tabindex="0">
-    <!-- قسم أوقات الشمس والقمر والتقويم الشهري -->
-    <div class="container container-sunmoon" style="color: #333;">
-      
-      
-        <div class="box" id="sunmoon-results">
-          <div id=""><div>
-            {% if moon_info.illumination is defined %}
-            <div>
-              <h3>معلومات القمر</h3>
-              <p>نسبة الإضاءة: {{ "%.2f"|format(moon_info.illumination*100) }}%</p>
-    <p>زاوية الطور: {{ "%.4f"|format(moon_info.phase_angle_degrees) }} درجة</p>
-    <p>تصنيف الطور: {{ moon_info.phase_description }}</p>
+        </div>
+
+        
+       
+          
+
+
     
+          {% if image_path %}
+          <div class="container my-4">
+            <div class="card shadow">
+              <div class="card-header text-center" style="color: #c8c4c4; background-color: #0c0842;">
+                <h2 class="card-title mb-0">خريطة السماء</h2>
+              </div>
+              <div class="card-body text-center" style="background-color: #0c0842;">
+                <img src="{{ image_path }}" alt="خريطة القبة السماوية" class="img-fluid rounded" style="background-color: #0c0842;">
+              </div>
             </div>
-          {% else %}
-            <div>
-              <h3>معلومات القمر غير متوفرة حالياً</h3>
-            </div>
+          </div>
           {% endif %}
-          </div>
-          </div>
-          <div id="results2"></div>
-          <div id="moon-phase-container" class="moon-phase-container" style="margin: 10px auto;"></div>
-        </div>
-        <div class="box box1">
-          <h2>التقويم الشهري</h2>
-          <div class="controls text-center">
-            <select id="month-select" onchange="updateCalendar()">
-            </select>
-            <select id="year-select" onchange="updateCalendar()">
-            </select>
-          </div>
-          <div class="calendar" id="calendar">
-          </div>
-        </div>
-    
-      </div>
-      </div>
-    <div class="tab-pane fade" id="nav-contact" role="tabpanel" aria-labelledby="nav-contact-tab" tabindex="0">
-    
-  {% if image_path %}
-  <div class="container my-4" style="color: aliceblue;">
-    <h2>خريطة السماء:</h2>
-    <img src="{{ image_path }}" alt="خريطة القبة السماوية">
-  </div>
-  {% endif %}
-      </div>
-  </div>
+          
+
 
 
 
@@ -347,9 +443,9 @@
       var defaultConfig = {
         shadowColour: 'black',
         lightColour: '#6f456e',
-        diameter: 80,
+        diameter: 100,
         earthshine: 0.1,
-        blur: 3
+        blur: 2
       };
       function populateMissingConfigValues(config){
         for(var p in defaultConfig) {
@@ -385,12 +481,16 @@
 
       var container = document.getElementById('moon-phase-container');
       container.innerHTML = '';
+      document.getElementById('results2').innerHTML = ` 
+                 ${moonPhaseName}
+            `;
       drawPlanetPhase(container, moonIllumination.fraction, moonIllumination.phase < 0.5, {
-        diameter: 36,
+        diameter: 80,
         shadowColour: 'black',
         lightColour: '#6f456e',
         blur: 2,
-        earthshine: 0.1
+        earthshine: 0.1,
+     
       });
     }
 
